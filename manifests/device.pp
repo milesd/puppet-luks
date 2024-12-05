@@ -67,6 +67,7 @@ define luks::device(
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
   # $cryptsetup_key_cmd = "${echo_cmd} | ${cryptsetup_cmd} --key-file -"
+  $file_path = '/tmp/eat.me'
   $cryptsetup_key_cmd = "${cryptsetup_cmd}  <${file_path}"
   $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
@@ -76,7 +77,6 @@ define luks::device(
     $format_options = ''
   }
 
-  $file_path = '/tmp/eat.me'
 
   file { $file_path:
     ensure  => 'file',
