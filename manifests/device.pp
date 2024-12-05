@@ -57,6 +57,7 @@ define luks::device(
   $devmapper = "/dev/mapper/${mapper}"
   $luks_format = "luks-format-${name}"
   $luks_open = "luks-open-${name}"
+  $luks_keycheck = "luks-keycheck-${name}"
   $luks_keychange = "luks-keychange-${name}"
 
   if $base64 {
@@ -107,15 +108,24 @@ define luks::device(
     require     => Exec[$luks_format],
   }
 
-  # Key change. Will only work if device currently open.
-  # Currently will only add a changed key, old one will remain until manually removed.
-  exec { $luks_keychange:
-    # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
-    command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
+  # Key check. 
+  exec { $luks_keycheck:
+    command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} open --test-passphrase ${device}'",
     user        => 'root',
     # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
-    unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
     environment => "CRYPTKEY=${node_encrypted_key}",
     require     => [Exec[$luks_open], File[$file_path]],
   }
+
+  # Key change. Will only work if device currently open.
+  # Currently will only add a changed key, old one will remain until manually removed.
+  # exec { $luks_keychange:
+  #   # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
+  #   command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
+  #   user        => 'root',
+  #   # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
+  #   unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
+  #   environment => "CRYPTKEY=${node_encrypted_key}",
+  #   require     => [Exec[$luks_open], File[$file_path]],
+  # }
 }
