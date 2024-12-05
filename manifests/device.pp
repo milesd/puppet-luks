@@ -60,14 +60,14 @@ define luks::device(
   $luks_keychange = "luks-keychange-${name}"
 
   if $base64 {
-    $echo_cmd = '/usr/bin/echo -n "$(puppet node decrypt --env CRYPTKEY)" | /usr/bin/base64 -d'
+    $echo_cmd = '/usr/bin/echo -n "$CRYPTKEY" | /usr/bin/base64 -d'
   } else {
-    $echo_cmd = '/usr/bin/echo -n "$(puppet node decrypt --env CRYPTKEY)"'
+    $echo_cmd = '/usr/bin/echo -n "$CRYPTKEY"'
   }
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
   $cryptsetup_key_cmd = "${echo_cmd} | ${cryptsetup_cmd} --key-file -"
-  $master_key_cmd = "dmsetup table --target crypt --showkey ${devmapper} | cut -f5 -d\" \" | xxd -r -p"
+  $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
   if $force_format == true {
     $format_options = '--batch-mode'
@@ -75,8 +75,9 @@ define luks::device(
     $format_options = ''
   }
 
-  $node_encrypted_key = node_encrypt($key)
-  redact('key') # Redact the passed in parameter from the catalog
+  # $node_encrypted_key = node_encrypt($key)
+  $node_encrypted_key = $key
+  # redact('key') # Redact the passed in parameter from the catalog
 
   # Format as LUKS device if it isn't already.
   exec { $luks_format:
@@ -93,7 +94,7 @@ define luks::device(
     user        => 'root',
     onlyif      => "/usr/bin/test ! -b ${devmapper}", # Check devmapper is a block device
     environment => "CRYPTKEY=${node_encrypted_key}",
-    # creates     => $devmapper,
+    creates     => $devmapper,
     require     => Exec[$luks_format],
   }
 
