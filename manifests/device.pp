@@ -60,9 +60,9 @@ define luks::device(
   $luks_keychange = "luks-keychange-${name}"
 
   if $base64 {
-    $echo_cmd = 'echo -n "$(puppet node decrypt --env CRYPTKEY)" | /usr/bin/base64 -d'
+    $echo_cmd = '/usr/bin/echo -n "$(puppet node decrypt --env CRYPTKEY)" | /usr/bin/base64 -d'
   } else {
-    $echo_cmd = 'echo -n "$(puppet node decrypt --env CRYPTKEY)"'
+    $echo_cmd = '/usr/bin/echo -n "$(puppet node decrypt --env CRYPTKEY)"'
   }
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
