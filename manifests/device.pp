@@ -75,6 +75,14 @@ define luks::device(
     $format_options = ''
   }
 
+  $file_path = '/tmp/eat.me'
+
+  file { $file_path:
+    ensure  => 'file',
+    content => $key,
+    mode    => '0600',
+  }
+
   # $node_encrypted_key = node_encrypt($key)
   $node_encrypted_key = $key
   # redact('key') # Redact the passed in parameter from the catalog
@@ -107,4 +115,7 @@ define luks::device(
     environment => "CRYPTKEY=${node_encrypted_key}",
     require     => Exec[$luks_open],
   }
+
+
+
 }
