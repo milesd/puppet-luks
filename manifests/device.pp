@@ -93,7 +93,7 @@ define luks::device(
     user        => 'root',
     onlyif      => "/usr/bin/test ! -b ${devmapper}", # Check devmapper is a block device
     environment => "CRYPTKEY=${node_encrypted_key}",
-    creates     => $devmapper,
+    # creates     => $devmapper,
     require     => Exec[$luks_format],
   }
 
