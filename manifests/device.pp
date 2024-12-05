@@ -67,7 +67,7 @@ define luks::device(
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
   # $cryptsetup_key_cmd = "${echo_cmd} | ${cryptsetup_cmd} --key-file -"
-  $cryptsetup_key_cmd = "${cryptsetup_cmd} --key-file ${file_path}"
+  $cryptsetup_key_cmd = "${cryptsetup_cmd} --key-file - <${file_path}"
   $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
   if $force_format == true {
@@ -111,10 +111,10 @@ define luks::device(
   # Currently will only add a changed key, old one will remain until manually removed.
   exec { $luks_keychange:
     # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
-    command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey ${device}'",
+    command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
     user        => 'root',
     # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
-    unless => "cryptsetup open --verbose --test-passphrase /dev/nvme0n1p3"
+    unless => "${cryptsetup_cmd} open --test-passphrase - ${device}"
     environment => "CRYPTKEY=${node_encrypted_key}",
     require     => [Exec[$luks_open], File[$file_path]],
   }
