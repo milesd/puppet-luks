@@ -118,12 +118,20 @@ define luks::device(
   }
 
   # Ensure the command runs only after the file is created
-  File[$file_path] ~> Exec[$luks_keycheck]
+  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec['remove_tempfile']
 
   # Delete the file after processing
-  file { $file_path:
-    ensure  => absent,
-    require => Exec[$luks_keycheck], # Ensure the command runs before deletion
+  # file { $file_path:
+  #   ensure  => absent,
+  #   require => Exec[$luks_keycheck], # Ensure the command runs before deletion
+  # }
+
+  # Remove the file after processing
+  exec { 'remove_tempfile':
+    command => "/bin/rm -f ${file_path}",
+    path    => ['/bin', '/usr/bin'],
+    require => Exec[$luks_keycheck], # Ensure processing happens first
+    onlyif  => "test -f ${file_path}",   # Only run if the file exists
   }
 
   # Key change. Will only work if device currently open.
