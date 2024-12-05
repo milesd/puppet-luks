@@ -114,7 +114,7 @@ define luks::device(
     command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
     user        => 'root',
     # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
-    unless => "${cryptsetup_cmd} open --test-passphrase - ${device}",
+    unless      => "${cryptsetup_key_cmd} open --test-passphrase - ${device}",
     environment => "CRYPTKEY=${node_encrypted_key}",
     require     => [Exec[$luks_open], File[$file_path]],
   }
