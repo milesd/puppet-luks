@@ -117,6 +117,15 @@ define luks::device(
     require     => [Exec[$luks_open], File[$file_path]],
   }
 
+  # Ensure the command runs only after the file is created
+  File[$file_path] ~> Exec[$luks_keycheck]
+
+  # Delete the file after processing
+  file { $file_path:
+    ensure  => absent,
+    require => Exec[$luks_keycheck], # Ensure the command runs before deletion
+  }
+
   # Key change. Will only work if device currently open.
   # Currently will only add a changed key, old one will remain until manually removed.
   # exec { $luks_keychange:
