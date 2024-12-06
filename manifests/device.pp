@@ -58,6 +58,7 @@ define luks::device(
   $luks_format = "luks-format-${name}"
   $luks_open = "luks-open-${name}"
   $luks_keycheck = "luks-keycheck-${name}"
+  $luks_bind = "luks-bind-${name}"
   $luks_keychange = "luks-keychange-${name}"
 
   if $base64 {
@@ -115,6 +116,15 @@ define luks::device(
     # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
     environment => "CRYPTKEY=${node_encrypted_key}",
     require     => [Exec[$luks_open], File[$file_path]],
+  }
+
+  # Key bind. 
+  exec { $luks_bind:
+    command     => "/usr/bin/clevis luks bind -d ${device} tpm2 '{\"pcr_bank\":\"sha256\"}' < ${file_path}",
+    # clevis luks bind -d /dev/nvme0n1p3 tpm2 '{"pcr_bank":"sha256"}' -k -
+    user        => 'root',
+    environment => "CRYPTKEY=${node_encrypted_key}",
+    require     => [Exec[$luks_keycheck], File[$file_path]],
   }
 
   # Ensure the command runs only after the file is created
