@@ -90,7 +90,7 @@ define luks::device (
 
   file { $decrypted_file:
     ensure  => 'file',
-    content => Deferred("node_decrypt", [$encrypted_content]),
+    content => Deferred("node_decrypt", [$test_node_encrypted_key]),
     mode    => '0600',
   }
 
