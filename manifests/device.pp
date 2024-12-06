@@ -82,7 +82,7 @@ define luks::device(
 
   file { $file_path:
     ensure  => 'file',
-    content => $key,
+    content => "${key}\n",
     mode    => '0600',
   }
 
