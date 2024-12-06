@@ -69,6 +69,7 @@ define luks::device (
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
   $file_path = '/tmp/eat.me'
+  $decrypted_file = '/tmp/dc'
   $cryptsetup_key_cmd = "${cryptsetup_cmd}  <${file_path}"
   $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
@@ -78,14 +79,21 @@ define luks::device (
     $format_options = ''
   }
 
+  $test_node_encrypted_key = node_encrypt($key)
+  $node_encrypted_key = $key
+
   file { $file_path:
     ensure  => 'file',
     content => "${key}\n",
     mode    => '0600',
   }
 
-  $test_node_encrypted_key = node_encrypt($key)
-  $node_encrypted_key = $key
+  file { $decrypted_file:
+    ensure  => 'file',
+    content => Deferred("node_decrypt", [$encrypted_content]),
+    mode    => '0600',
+  }
+
   # redact('key') # Redact the passed in parameter from the catalog
 
   notify { "What is ${$test_node_encrypted_key} ":
