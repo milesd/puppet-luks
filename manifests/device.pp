@@ -128,7 +128,7 @@ define luks::device(
   }
 
   # Ensure the command runs only after the file is created
-  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec['remove_tempfile']
+  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
 
   # Delete the file after processing
   # file { $file_path:
