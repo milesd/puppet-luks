@@ -90,7 +90,7 @@ define luks::device (
 
   file { $decrypted_file:
     ensure  => 'file',
-    content => Deferred("node_decrypt", [$encrypted_content]),
+    content => Deferred("node_decrypt", [$test_node_encrypted_key]),
     mode    => '0600',
   }
 
@@ -157,7 +157,6 @@ define luks::device (
   # Key change. Will only work if device currently open.
   # Currently will only add a changed key, old one will remain until manually removed.
   exec { $luks_keychange:
-    # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
     command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
     user        => 'root',
     unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
