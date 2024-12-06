@@ -43,7 +43,7 @@
 #     key    => 's3kr1t',
 #   }
 #
-define luks::device(
+define luks::device (
   $device,
   $key,
   $base64 = false,
@@ -78,17 +78,19 @@ define luks::device(
     $format_options = ''
   }
 
-
   file { $file_path:
     ensure  => 'file',
     content => "${key}\n",
     mode    => '0600',
   }
 
-  $node_encrypted_key = node_encrypt($key)
+  $test_node_encrypted_key = node_encrypt($key)
   $node_encrypted_key = $key
   # redact('key') # Redact the passed in parameter from the catalog
 
+  notify { "What is ${$test_node_encrypted_key} ":
+  }
+  
   # Format as LUKS device if it isn't already.
   exec { $luks_format:
     command     => "${cryptsetup_key_cmd} luksFormat ${format_options} ${device}",
