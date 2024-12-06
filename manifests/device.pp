@@ -68,7 +68,6 @@ define luks::device(
   }
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
-  # $cryptsetup_key_cmd = "${echo_cmd} | ${cryptsetup_cmd} --key-file -"
   $file_path = '/tmp/eat.me'
   $cryptsetup_key_cmd = "${cryptsetup_cmd}  <${file_path}"
   $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
@@ -86,7 +85,7 @@ define luks::device(
     mode    => '0600',
   }
 
-  # $node_encrypted_key = node_encrypt($key)
+  $node_encrypted_key = node_encrypt($key)
   $node_encrypted_key = $key
   # redact('key') # Redact the passed in parameter from the catalog
 
@@ -128,8 +127,8 @@ define luks::device(
   }
 
   # Ensure the command runs only after the file is created
-  # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
-  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind]
+  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
+  # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind]
 
   # Delete the file after processing
   # file { $file_path:
@@ -138,22 +137,21 @@ define luks::device(
   # }
 
   # Remove the file after processing
-  # exec { 'remove_tempfile':
-  #   command => "/bin/rm -f ${file_path}",
-  #   path    => ['/bin', '/usr/bin'],
-  #   require => Exec[$luks_keycheck], # Ensure processing happens first
-  #   onlyif  => "test -f ${file_path}",   # Only run if the file exists
-  # }
+  exec { 'remove_tempfile':
+    command => "/bin/rm -f ${file_path}",
+    path    => ['/bin', '/usr/bin'],
+    require => Exec[$luks_keycheck], # Ensure processing happens first
+    onlyif  => "test -f ${file_path}",   # Only run if the file exists
+  }
 
   # Key change. Will only work if device currently open.
   # Currently will only add a changed key, old one will remain until manually removed.
-  # exec { $luks_keychange:
-  #   # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
-  #   command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
-  #   user        => 'root',
-  #   # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
-  #   unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
-  #   environment => "CRYPTKEY=${node_encrypted_key}",
-  #   require     => [Exec[$luks_open], File[$file_path]],
-  # }
+  exec { $luks_keychange:
+    # command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} luksAddKey --master-key-file <(${master_key_cmd}) ${device} -'",
+    command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
+    user        => 'root',
+    unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
+    environment => "CRYPTKEY=${node_encrypted_key}",
+    require     => [Exec[$luks_open], File[$file_path]],
+  }
 }
