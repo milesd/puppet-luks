@@ -70,8 +70,8 @@ define luks::device (
   $cryptsetup_cmd = '/sbin/cryptsetup'
   # $file_path = '/tmp/eat.me'
   # $decrypted_file = '/tmp/dc'
-  $cryptsetup_key_cmd = "${cryptsetup_cmd}  <${file_path}"
-  $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
+  $cryptsetup_key_cmd = "${echo_cmd} | ${cryptsetup_cmd} --key-file -"
+  # $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
   if $force_format == true {
     $format_options = '--batch-mode'
@@ -79,11 +79,11 @@ define luks::device (
     $format_options = ''
   }
 
-  $test_node_encrypted_key = node_encrypt($key)
-  $node_encrypted_key = $key
+  # $test_node_encrypted_key = node_encrypt($key)
+  # $node_encrypted_key = $key
 
-  notify { "What is ${$test_node_encrypted_key} ":
-  }
+  # notify { "What is ${$test_node_encrypted_key} ":
+  # }
   # redact('key') # Redact the passed in parameter from the catalog
 
   # file { $file_path:
@@ -103,7 +103,7 @@ define luks::device (
     command     => "${cryptsetup_key_cmd} luksFormat ${format_options} ${device}",
     user        => 'root',
     unless      => "${cryptsetup_cmd} isLuks ${device}",
-    environment => "CRYPTKEY=${node_encrypted_key}",
+    environment => "CRYPTKEY=${key}",
     require     => Class['luks'],
   }
 
@@ -112,7 +112,7 @@ define luks::device (
     command     => "${cryptsetup_key_cmd} luksOpen ${device} ${mapper}",
     user        => 'root',
     onlyif      => "/usr/bin/test ! -b ${devmapper}", # Check devmapper is a block device
-    environment => "CRYPTKEY=${node_encrypted_key}",
+    environment => "CRYPTKEY=${key}",
     creates     => $devmapper,
     require     => Exec[$luks_format],
   }
@@ -122,8 +122,8 @@ define luks::device (
     command     => "/usr/bin/bash -c '${cryptsetup_key_cmd} open --test-passphrase ${device}'",
     user        => 'root',
     # unless      => "${cryptsetup_key_cmd} luksDump ${device} --dump-master-key --batch-mode > /dev/null",
-    environment => "CRYPTKEY=${node_encrypted_key}",
-    require     => [Exec[$luks_open], File[$file_path]],
+    environment => "CRYPTKEY=${key}",
+    require     => Exec[$luks_open],
   }
 
   # Key bind. 
