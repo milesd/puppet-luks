@@ -68,8 +68,8 @@ define luks::device (
   }
 
   $cryptsetup_cmd = '/sbin/cryptsetup'
-  $file_path = '/tmp/eat.me'
-  $decrypted_file = '/tmp/dc'
+  # $file_path = '/tmp/eat.me'
+  # $decrypted_file = '/tmp/dc'
   $cryptsetup_key_cmd = "${cryptsetup_cmd}  <${file_path}"
   $master_key_cmd = "/usr/sbin/dmsetup table --target crypt --showkey ${devmapper} | /usr/bin/cut -f5 -d\" \" | /usr/bin/xxd -r -p"
 
@@ -82,23 +82,22 @@ define luks::device (
   $test_node_encrypted_key = node_encrypt($key)
   $node_encrypted_key = $key
 
-  file { $file_path:
-    ensure  => 'file',
-    content => "${key}\n",
-    mode    => '0600',
+  notify { "What is ${$test_node_encrypted_key} ":
   }
-
-  file { $decrypted_file:
-    ensure  => 'file',
-    content => Deferred("node_decrypt", [$test_node_encrypted_key]),
-    mode    => '0600',
-  }
-
   # redact('key') # Redact the passed in parameter from the catalog
 
-  # notify { "What is ${$test_node_encrypted_key} ":
+  # file { $file_path:
+  #   ensure  => 'file',
+  #   content => "${key}\n",
+  #   mode    => '0600',
   # }
-  
+
+  # file { $decrypted_file:
+  #   ensure  => 'file',
+  #   content => Deferred("node_decrypt", [$test_node_encrypted_key]),
+  #   mode    => '0600',
+  # }
+
   # Format as LUKS device if it isn't already.
   exec { $luks_format:
     command     => "${cryptsetup_key_cmd} luksFormat ${format_options} ${device}",
@@ -128,18 +127,18 @@ define luks::device (
   }
 
   # Key bind. 
-  exec { $luks_bind:
-    command     => "/usr/bin/clevis luks bind -d ${device} tpm2 '{\"pcr_bank\":\"sha256\"}' < ${file_path}",
-    # clevis luks bind -d /dev/nvme0n1p3 tpm2 '{"pcr_bank":"sha256"}' -k -
-    user        => 'root',
-    environment => "CRYPTKEY=${node_encrypted_key}",
-    require     => [Exec[$luks_keycheck], File[$file_path]],
-  }
+  # exec { $luks_bind:
+  #   command     => "/usr/bin/clevis luks bind -d ${device} tpm2 '{\"pcr_bank\":\"sha256\"}' < ${file_path}",
+  #   # clevis luks bind -d /dev/nvme0n1p3 tpm2 '{"pcr_bank":"sha256"}' -k -
+  #   user        => 'root',
+  #   environment => "CRYPTKEY=${node_encrypted_key}",
+  #   require     => [Exec[$luks_keycheck], File[$file_path]],
+  # }
 
   # Ensure the command runs only after the file is created
   # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
-  File[$file_path] ~> Exec[$luks_keycheck]
-  File[$file_path] ~> Exec[$luks_bind] 
+  # File[$file_path] ~> Exec[$luks_keycheck]
+  # File[$file_path] ~> Exec[$luks_bind] 
   # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind]
 
   # Delete the file after processing
@@ -149,20 +148,20 @@ define luks::device (
   # }
 
   # Remove the file after processing
-  exec { 'remove_tempfile':
-    command => "/bin/rm -f ${file_path}",
-    path    => ['/bin', '/usr/bin'],
-    require => Exec[$luks_keycheck], # Ensure processing happens first
-    onlyif  => "test -f ${file_path}",   # Only run if the file exists
-  }
+  # exec { 'remove_tempfile':
+  #   command => "/bin/rm -f ${file_path}",
+  #   path    => ['/bin', '/usr/bin'],
+  #   require => Exec[$luks_keycheck], # Ensure processing happens first
+  #   onlyif  => "test -f ${file_path}",   # Only run if the file exists
+  # }
 
   # Key change. Will only work if device currently open.
   # Currently will only add a changed key, old one will remain until manually removed.
-  exec { $luks_keychange:
-    command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
-    user        => 'root',
-    unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
-    environment => "CRYPTKEY=${node_encrypted_key}",
-    require     => [Exec[$luks_open], File[$file_path]],
-  }
+  # exec { $luks_keychange:
+  #   command     => "/usr/bin/bash -c 'echo ${cryptsetup_key_cmd} luksAddKey ${device}'",
+  #   user        => 'root',
+  #   unless      => "${cryptsetup_key_cmd} open --test-passphrase ${device}",
+  #   environment => "CRYPTKEY=${node_encrypted_key}",
+  #   require     => [Exec[$luks_open], File[$file_path]],
+  # }
 }
