@@ -96,8 +96,8 @@ define luks::device (
 
   # redact('key') # Redact the passed in parameter from the catalog
 
-  notify { "What is ${$test_node_encrypted_key} ":
-  }
+  # notify { "What is ${$test_node_encrypted_key} ":
+  # }
   
   # Format as LUKS device if it isn't already.
   exec { $luks_format:
@@ -137,7 +137,9 @@ define luks::device (
   }
 
   # Ensure the command runs only after the file is created
-  File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
+  # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind] ~> Exec['remove_tempfile']
+  File[$file_path] ~> Exec[$luks_keycheck]
+  File[$file_path] ~> Exec[$luks_bind] 
   # File[$file_path] ~> Exec[$luks_keycheck] ~> Exec[$luks_bind]
 
   # Delete the file after processing
